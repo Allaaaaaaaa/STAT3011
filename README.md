@@ -7,6 +7,10 @@ https://docs.qq.com/doc/DZUNNQm9hRFJtVUh4
 ## Data crawler
 Website: https://www.artmajeur.com/zh/yi-shu-pin/hui-hua
 
+Data1: https://share.weiyun.com/hRzMyzMR
+
+Data2: https://share.weiyun.com/PcW2hbBI
+
 ## Config the env
 Prefer Tensorflow
 
