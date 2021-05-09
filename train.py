@@ -1,77 +1,96 @@
-# 导入文件
-import os
-import numpy as np
+from __future__ import absolute_import, division, print_function
 import tensorflow as tf
-from prework import get_file, get_batch
-from CNN import deep_CNN, losses, trainning, evaluation
-
-# 变量声明
-N_CLASSES = 3
-IMG_W = 28  # resize图像，太大的话训练时间久
-IMG_H = 28
-BATCH_SIZE = 20  # 每个batch要放多少张图片
-CAPACITY = 200  # 一个队列最大多少
-MAX_STEP = 1000
-learning_rate = 0.0001  # 一般小于0.0001
-
-# 获取批次batch
-train_dir = 'C:/Users/user/Desktop/stat3011_proj2/data'  # 训练样本的读入路径
-logs_train_dir = 'C:/Users/user/Desktop/stat3011_proj2'  # logs存储路径
-train, train_label = get_file(train_dir)
-# 训练数据及标签
-train_batch, train_label_batch = get_batch(train, train_label, IMG_W, IMG_H, BATCH_SIZE, CAPACITY)
-
-# 训练操作定义
-train_logits = deep_CNN(train_batch, BATCH_SIZE, N_CLASSES)
-train_loss = losses(train_logits, train_label_batch)
-train_op = trainning(train_loss, learning_rate)
-train_acc = evaluation(train_logits, train_label_batch)
-
-# 这个是log汇总记录
-summary_op = tf.summary.merge_all()
-
-# 产生一个会话
-sess = tf.Session()
-train_writer = tf.summary.FileWriter(logs_train_dir, sess.graph)
-# 产生一个saver来存储训练好的模型
-saver = tf.train.Saver()
-# 所有节点初始化
-sess.run(tf.global_variables_initializer())
-# 队列监控
-coord = tf.train.Coordinator()  # 设置多线程协调器
-threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
-# 进行batch的训练
-try:
-    # 执行MAX_STEP步的训练，一步一个batch
-    for step in np.arange(MAX_STEP):
-        if coord.should_stop():
-            break
-        # 启动以下操作节点，有个疑问，为什么train_logits在这里没有开启？
-        _, tra_loss, tra_acc = sess.run([train_op, train_loss, train_acc])
-
-        # 每隔50步打印一次当前的loss以及acc，同时记录log，写入writer
-        if step % 100 == 0:
-            print('Step %d, train loss = %.2f, train accuracy = %.2f%%' % (step, tra_loss, tra_acc * 100.0))
-            summary_str = sess.run(summary_op)
-            train_writer.add_summary(summary_str, step)
-
-        # 保存最后一次网络参数
-        checkpoint_path = os.path.join(logs_train_dir, 'thing.ckpt')
-        saver.save(sess, checkpoint_path)
-
-        '''
-        # 每隔100步，保存一次训练好的模型
-        if (step + 1) == MAX_STEP:
-            checkpoint_path = os.path.join(logs_train_dir, 'thing.ckpt')
-            saver.save(sess, checkpoint_path, global_step=step)
-        '''
+from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_152
+import config
+from prepare_data import generate_datasets
+import math
 
 
-except tf.errors.OutOfRangeError:
-    print('Done training -- epoch limit reached')
+def get_model():
+    model = resnet_50()
+    if config.model == "resnet18":
+        model = resnet_18()
+    if config.model == "resnet34":
+        model = resnet_34()
+    if config.model == "resnet101":
+        model = resnet_101()
+    if config.model == "resnet152":
+        model = resnet_152()
+    model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
+    model.summary()
+    return model
 
-finally:
-    coord.request_stop()
-coord.join(threads)
-sess.close()
+
+if __name__ == '__main__':
+    # GPU settings
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+
+
+    # get the original_dataset
+    train_dataset, valid_dataset, test_dataset, train_count, valid_count, test_count = generate_datasets()
+
+
+    # create model
+    model = get_model()
+
+    # define loss and optimizer
+    loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
+    optimizer = tf.keras.optimizers.Adadelta()
+
+    train_loss = tf.keras.metrics.Mean(name='train_loss')
+    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
+
+    valid_loss = tf.keras.metrics.Mean(name='valid_loss')
+    valid_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='valid_accuracy')
+
+    @tf.function
+    def train_step(images, labels):
+        with tf.GradientTape() as tape:
+            predictions = model(images, training=True)
+            loss = loss_object(y_true=labels, y_pred=predictions)
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(grads_and_vars=zip(gradients, model.trainable_variables))
+
+        train_loss(loss)
+        train_accuracy(labels, predictions)
+
+    @tf.function
+    def valid_step(images, labels):
+        predictions = model(images, training=False)
+        v_loss = loss_object(labels, predictions)
+
+        valid_loss(v_loss)
+        valid_accuracy(labels, predictions)
+
+    # start training
+    for epoch in range(config.EPOCHS):
+        train_loss.reset_states()
+        train_accuracy.reset_states()
+        valid_loss.reset_states()
+        valid_accuracy.reset_states()
+        step = 0
+        for images, labels in train_dataset:
+            step += 1
+            train_step(images, labels)
+            print("Epoch: {}/{}, step: {}/{}, loss: {:.5f}, accuracy: {:.5f}".format(epoch + 1,
+                                                                                     config.EPOCHS,
+                                                                                     step,
+                                                                                     math.ceil(train_count / config.BATCH_SIZE),
+                                                                                     train_loss.result(),
+                                                                                     train_accuracy.result()))
+
+        for valid_images, valid_labels in valid_dataset:
+            valid_step(valid_images, valid_labels)
+
+        print("Epoch: {}/{}, train loss: {:.5f}, train accuracy: {:.5f}, "
+              "valid loss: {:.5f}, valid accuracy: {:.5f}".format(epoch + 1,
+                                                                  config.EPOCHS,
+                                                                  train_loss.result(),
+                                                                  train_accuracy.result(),
+                                                                  valid_loss.result(),
+                                                                  valid_accuracy.result()))
+
+    model.save_weights(filepath=config.save_model_dir, save_format='tf')
