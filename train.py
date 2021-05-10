@@ -4,6 +4,7 @@ from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_15
 import config
 from prepare_data import generate_datasets
 import math
+import models.vgg as vgg
 
 
 def get_model():
@@ -16,7 +17,9 @@ def get_model():
         model = resnet_101()
     if config.model == "resnet152":
         model = resnet_152()
-    model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
+    # model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
+    if config.model == "vgg16":
+        model = vgg.VGG16()
     model.summary()
     return model
 
@@ -38,7 +41,12 @@ if __name__ == '__main__':
 
     # define loss and optimizer
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-    optimizer = tf.keras.optimizers.Adadelta()
+    # optimizer = tf.keras.optimizers.Adadelta()
+    # lr = 0.01
+    # optimizer = tf.keras.optimizers.Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False,
+    #                                      name='Adam', )
+    optimizer = tf.keras.optimizers.Adam()
+
 
     train_loss = tf.keras.metrics.Mean(name='train_loss')
     train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')

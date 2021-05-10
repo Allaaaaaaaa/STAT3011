@@ -136,3 +136,14 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# vgg npy file
+models/vgg16.npy
+models/vgg19.npy
+
+# model file
+saved_model/
+
+# dataset
+dataset/
+original_dataset/
