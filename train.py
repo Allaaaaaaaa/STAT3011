@@ -4,7 +4,7 @@ from models.resnet import resnet_18, resnet_34, resnet_50, resnet_101, resnet_15
 import config
 from prepare_data import generate_datasets
 import math
-import models.vgg as vgg
+from models.vgg import vgg_16
 
 
 def get_model():
@@ -17,9 +17,10 @@ def get_model():
         model = resnet_101()
     if config.model == "resnet152":
         model = resnet_152()
-    # model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
-    if config.model == "vgg16":
-        model = vgg.VGG16()
+    if config.model=="vgg16":
+        model= vgg_16()
+    model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
+
     model.summary()
     return model
 
