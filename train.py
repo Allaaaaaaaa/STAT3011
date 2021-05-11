@@ -16,10 +16,10 @@ def get_model():
     if config.model == "resnet101":
         model = resnet_101()
     if config.model == "resnet152":
-        model = resnet_152()
-    # model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
-    if config.model == "vgg16":
-        model = vgg.VGG16()
+        model = resnet_152()    
+    model.build(input_shape=(None, config.image_height, config.image_width, config.channels))
+    # if config.model == "vgg16":
+    #     model = vgg.VGG16()
     model.summary()
     return model
 

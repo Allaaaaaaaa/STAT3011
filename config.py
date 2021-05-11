@@ -1,5 +1,5 @@
 # some training parameters
-EPOCHS = 50
+EPOCHS = 100
 BATCH_SIZE = 8
 NUM_CLASSES = 3
 image_height = 224
@@ -13,9 +13,9 @@ test_dir = dataset_dir + "test"
 
 # choose a network
 # model = "resnet18"
-# model = "resnet34"
+model = "resnet34"
 # model = "resnet50"
 # model = "resnet101"
 # model = "resnet152"
-model = "vgg16"
+# model = "vgg16"
 # model = "vgg19"
