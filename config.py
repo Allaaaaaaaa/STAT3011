@@ -1,5 +1,5 @@
 # some training parameters
-EPOCHS = 100
+EPOCHS = 50
 BATCH_SIZE = 8
 NUM_CLASSES = 3
 image_height = 224
@@ -19,3 +19,4 @@ model = "resnet34"
 # model = "resnet152"
 # model = "vgg16"
 # model = "vgg19"
+# model = "alexnet"
