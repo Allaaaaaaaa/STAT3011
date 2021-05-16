@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # lr = 0.01
     # optimizer = tf.keras.optimizers.Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False,
     #                                      name='Adam', )
-    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
 
 
     train_loss = tf.keras.metrics.Mean(name='train_loss')
