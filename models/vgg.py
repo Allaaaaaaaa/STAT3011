@@ -109,4 +109,8 @@ class VGG16(tf.keras.Model):
         return self.model(inputs)
 
 def vgg_16():
-    return VGG16()
+    return tf.keras.applications.VGG16(
+    include_top=True, weights=None, input_tensor=None,
+    input_shape=None, pooling=None, classes=NUM_CLASSES,
+    classifier_activation='softmax')
+
